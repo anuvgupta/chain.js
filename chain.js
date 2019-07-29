@@ -5,33 +5,44 @@
  * Copyright (c) 2019 Anuv Gupta
  */
 
-var Chain = function () {
-    // private
-    var self = {
-        calls: [],
-        executors: {},
-        current_call: -1
-    };
-    // public
-    var chain = {
-        attach: function (name, executor) {
-            self.calls.push(name);
-            self.executors[name] = executor;
-            return chain;
-        },
-        execute: function (data) {
-            if (data == undefined) data = null;
-            self.current_call++;
-            if (self.current_call < self.calls.length) {
-                self.executors[self.calls[self.current_call]](data, function (result) {
-                    chain.execute(result);
-                });
+// chain object
+// custom control-flow structure (similar to promises/generators)
+// provides readable/organized async callback chaining
+module.exports = {
+    spawn: function () {
+        // private
+        var self = {
+            calls: [],
+            executors: {},
+            current: -1
+        };
+        // public
+        var chain = {
+            attach: function (name, executor) {
+                self.calls.push(name);
+                self.executors[name] = executor;
+                return chain;
+            },
+            execute: function (data) {
+                if (self.current == -1) {
+                    if (data == undefined)
+                        data = null;
+                    data = { '__exec': data };
+                }
+                self.current++;
+                if (self.current < self.calls.length) {
+                    var name = self.calls[self.current];
+                    self.executors[name](data, function (result) {
+                        data[name] = result;
+                        chain.execute(data);
+                    });
+                }
+                return chain;
+            },
+            reset: function () {
+                self.current = -1;
             }
-            return chain;
-        },
-        reset: function () {
-            self.current_call = -1;
-        }
-    };
-    return chain;
+        };
+        return chain;
+    }
 };
